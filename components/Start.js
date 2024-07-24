@@ -6,8 +6,12 @@ import {
   TextInput,
   ImageBackground,
   TouchableOpacity,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 
+// Define a set of colors used as background in the Chat.js screen
 const appColors = {
   dark1: "#090C08",
   dark2: "#474056",
@@ -15,33 +19,54 @@ const appColors = {
   lightGreen: "#B9C6AE",
 };
 
-const Screen1 = ({ navigation }) => {
+// Define the Start component which is the entry screen of the app
+
+const Start = ({ navigation }) => {
+  // State for storing the user's name
   const [name, setName] = useState("");
+  // State for storing the selected background color
   const [selectedColor, setSelectedColor] = useState(appColors.dark1);
 
+  // Function to handle the selection of background color
   const handleColorSelect = (color) => {
     setSelectedColor(color);
   };
 
   return (
     <View style={styles.container}>
+      {/* Background image */}
+
       <ImageBackground
         source={require("../public/backgroundImage.png")}
         style={styles.image}
       >
+        {/* App title */}
+
         <Text style={styles.appTitle}>App Title</Text>
+        {/* White box containing the input, background color circles, and start chatting button */}
+
         <View style={styles.contentBox}>
-          <TextInput
-            style={styles.textInput}
-            value={name}
-            onChangeText={setName}
-            placeholder="Your Name"
-          />
+          <View style={styles.inputWrapper}>
+            <Image source={require("../public/icon.png")} style={styles.icon} />
+            <TextInput
+              style={styles.textInput}
+              value={name}
+              onChangeText={setName}
+              placeholder="Your Name"
+              placeholderTextColor="#757083"
+            />
+          </View>
+          {/* Background color selection section */}
           <View style={styles.selectBackground}>
             <Text style={styles.bodyText}>Choose Background Color.</Text>
             <View style={styles.selectBgColor}>
+              {/* Color options */}
               {Object.values(appColors).map((color) => (
                 <TouchableOpacity
+                  accessible={true}
+                  accessibilityLabel="Color option"
+                  accessibilityHint="Let's you choose the background color for the chat screen."
+                  accessibilityRole="button"
                   key={color}
                   onPress={() => handleColorSelect(color)}
                 >
@@ -62,11 +87,16 @@ const Screen1 = ({ navigation }) => {
               ))}
             </View>
           </View>
+          {/* Button to navigate to the chat screen */}
           <TouchableOpacity
+            accessible={true}
+            accessibilityLabel="Navigation button"
+            accessibilityHint="Takes you to the chatting screen."
+            accessibilityRole="button"
             style={styles.button}
-            title="Go to Screen 2"
+            title="Start chatting"
             onPress={() =>
-              navigation.navigate("Screen2", {
+              navigation.navigate("Chat", {
                 name: name,
                 color: selectedColor,
               })
@@ -76,10 +106,18 @@ const Screen1 = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </ImageBackground>
+      {/* Keyboard avoiding view for better UX on different platforms */}
+      {Platform.OS === "android" ? (
+        <KeyboardAvoidingView behavior="height" />
+      ) : null}
+      {Platform.OS === "ios" ? (
+        <KeyboardAvoidingView behavior="padding" />
+      ) : null}
     </View>
   );
 };
 
+// Styles for the component
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -90,7 +128,7 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     position: "absolute",
-    top: 100, // Adjust this value as needed
+    top: 100,
     left: 0,
     right: 0,
     textAlign: "center",
@@ -108,6 +146,19 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 8,
   },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#757083",
+    borderRadius: 5,
+    margin: 20,
+  },
+  icon: {
+    width: 24,
+    height: 24,
+    marginLeft: 12,
+  },
   textInput: {
     alignSelf: "center",
     width: "88%",
@@ -115,16 +166,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 300,
     padding: 15,
-    borderWidth: 1,
-    marginTop: 15,
-    marginBottom: 15,
+    borderWidth: 0,
     color: "#757083",
     opacity: 0.5,
   },
   selectBackground: {
     alignSelf: "center",
     width: "88%",
-    marginTop: 28,
+    marginTop: 12,
   },
   bodyText: {
     fontSize: 16,
@@ -168,4 +217,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Screen1;
+export default Start;
