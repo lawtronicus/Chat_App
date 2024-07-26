@@ -13,14 +13,22 @@ import {
   SystemMessage,
   Day,
 } from "react-native-gifted-chat";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+} from "firebase/firestore";
 import avatarImage from "../assets/images/avatar.jpeg";
 
 // Define the Chat component which handles the chat screen
-const Chat = ({ route, navigation }) => {
+const Chat = ({ db, route, navigation }) => {
   // State for storing chat messages
   const [messages, setMessages] = useState([]);
   // Extract name and background color from route parameters
-  const { name, color } = route.params;
+  const { id, name, color } = route.params;
 
   // Function to determine if a color is light or dark - credit to krabs-github for this function
   function lightOrDark(color) {
@@ -61,32 +69,28 @@ const Chat = ({ route, navigation }) => {
 
   // useEffect hook to set initial messages and navigation options
   useEffect(() => {
-    navigation.setOptions({ title: name });
-    setMessages([
-      {
-        _id: 1,
-        text: "Hello developer",
-        createdAt: new Date(),
-        user: {
-          _id: 2,
-          name: "React Native",
-          avatar: Image.resolveAssetSource(avatarImage).uri,
-        },
-      },
-      {
-        _id: 2,
-        text: "This is a system message",
-        createdAt: new Date(),
-        system: true,
-      },
-    ]);
+    const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
+    const unsubMessages = onSnapshot(q, (documentsSnapshot) => {
+      let newMessages = [];
+      documentsSnapshot.forEach((doc) => {
+        newMessages.push({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: new Date(doc.data().createdAt.toMillis()),
+        });
+      });
+      setMessages(newMessages);
+    });
+
+    // Clean up code
+    return () => {
+      if (unsubMessages) unsubMessages();
+    };
   }, []);
 
   // Function to handle sending new messages
   const onSend = (newMessages) => {
-    setMessages((previousMessages) =>
-      GiftedChat.append(previousMessages, newMessages),
-    );
+    addDoc(collection(db, "messages"), newMessages[0]);
   };
 
   // Custom render function for system messages so that they are clearly visible on any background
@@ -117,7 +121,8 @@ const Chat = ({ route, navigation }) => {
         messages={messages}
         onSend={(messages) => onSend(messages)}
         user={{
-          _id: 1,
+          _id: id,
+          name: name,
         }}
         renderSystemMessage={renderSystemMessage}
         renderDay={renderDay}

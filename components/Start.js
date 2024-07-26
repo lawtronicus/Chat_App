@@ -9,7 +9,9 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
+import { getAuth, signInAnonymously } from "firebase/auth";
 
 // Define a set of colors used as background in the Chat.js screen
 const appColors = {
@@ -22,6 +24,22 @@ const appColors = {
 // Define the Start component which is the entry screen of the app
 
 const Start = ({ navigation }) => {
+  //sign in user anonymously
+  const auth = getAuth();
+  const signInUser = () => {
+    signInAnonymously(auth)
+      .then((result) => {
+        navigation.navigate("Chat", {
+          id: result.user.uid,
+          name: name,
+          color: selectedColor,
+        });
+        Alert.alert("Signed in Successfully!");
+      })
+      .catch((error) => {
+        Alert.alert("Unable to sign in, try later again.");
+      });
+  };
   // State for storing the user's name
   const [name, setName] = useState("");
   // State for storing the selected background color
@@ -95,12 +113,7 @@ const Start = ({ navigation }) => {
             accessibilityRole="button"
             style={styles.button}
             title="Start chatting"
-            onPress={() =>
-              navigation.navigate("Chat", {
-                name: name,
-                color: selectedColor,
-              })
-            }
+            onPress={signInUser}
           >
             <Text style={styles.buttonText}>Start Chatting</Text>
           </TouchableOpacity>
