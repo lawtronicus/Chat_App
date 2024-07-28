@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     right: 0,
     textAlign: "center",
     fontSize: 45,
-    fontWeight: 600,
+    fontWeight: "600",
     fontWeight: "bold",
     color: "white",
   },
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     width: "88%",
     height: 60,
     fontSize: 16,
-    fontWeight: 300,
+    fontWeight: "300",
     padding: 15,
     borderWidth: 0,
     color: "#757083",
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   },
   bodyText: {
     fontSize: 16,
-    fontWeight: 300,
+    fontWeight: "300",
     color: "#757083",
   },
   selectBgColor: {
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   buttonText: {
     alignSelf: "center",
     fontSize: 16,
-    fontWeight: 100,
+    fontWeight: "100",
     color: "white",
   },
 });

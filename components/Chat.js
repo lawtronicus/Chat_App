@@ -1,17 +1,13 @@
-import {
-  StyleSheet,
-  View,
-  Text,
-  KeyboardAvoidingView,
-  Platform,
-  Image,
-} from "react-native";
+// import AsyncStorage so previous chats can be pulled from cache if offline
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { StyleSheet, View, KeyboardAvoidingView, Platform } from "react-native";
 import { useState, useEffect } from "react";
 import {
-  Bubble,
   GiftedChat,
   SystemMessage,
   Day,
+  InputToolbar,
 } from "react-native-gifted-chat";
 import {
   collection,
@@ -24,7 +20,7 @@ import {
 import avatarImage from "../assets/images/avatar.jpeg";
 
 // Define the Chat component which handles the chat screen
-const Chat = ({ db, route, navigation }) => {
+const Chat = ({ db, route, isConnected }) => {
   // State for storing chat messages
   const [messages, setMessages] = useState([]);
   // Extract name and background color from route parameters
@@ -67,26 +63,51 @@ const Chat = ({ db, route, navigation }) => {
   // Determine text color based on background color lightness
   const textColor = lightOrDark(color) === "dark" ? "white" : "black";
 
+  //Load messages from cache if not connected
+  const loadCachedMessages = async () => {
+    const cachedMessages = (await AsyncStorage.getItem("messages")) || [];
+    setMessages(JSON.parse(cachedMessages));
+  };
+
+  // declare unsubMessages outside of useEffect so that I can use unsubscribe and disable the old onSanpsho() listener before losing its reference
+  let unsubMessages;
+
   // useEffect hook to set initial messages and navigation options
   useEffect(() => {
-    const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
-    const unsubMessages = onSnapshot(q, (documentsSnapshot) => {
-      let newMessages = [];
-      documentsSnapshot.forEach((doc) => {
-        newMessages.push({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: new Date(doc.data().createdAt.toMillis()),
+    if (isConnected === true) {
+      // unregister current onSnapshot() listener to avoid registering multiple listeners when
+      // useEffect code is re-executed.
+      if (unsubMessages) unsubMessages();
+      unsubMessages = null;
+
+      const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
+      unsubMessages = onSnapshot(q, (documentsSnapshot) => {
+        let newMessages = [];
+        documentsSnapshot.forEach((doc) => {
+          newMessages.push({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: new Date(doc.data().createdAt.toMillis()),
+          });
         });
+        cacheMessages(newMessages);
+        setMessages(newMessages);
       });
-      setMessages(newMessages);
-    });
+    } else loadCachedMessages();
 
     // Clean up code
     return () => {
       if (unsubMessages) unsubMessages();
     };
-  }, []);
+  }, [isConnected]);
+
+  const cacheMessages = async (messagesToCache) => {
+    try {
+      await AsyncStorage.setItem("messages", JSON.stringify(messagesToCache));
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
 
   // Function to handle sending new messages
   const onSend = (newMessages) => {
@@ -103,21 +124,15 @@ const Chat = ({ db, route, navigation }) => {
     <Day {...props} textStyle={{ color: textColor }} />
   );
 
-  // Custom render function for avatar
-  const renderAvatar = (props) => (
-    <Image
-      source={avatarImage}
-      style={{
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-      }}
-    />
-  );
+  const renderInputToolbar = (props) => {
+    if (isConnected) return <InputToolbar {...props} />;
+    else return null;
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: color }]}>
       <GiftedChat
+        renderUsernameOnMessage={true}
         messages={messages}
         onSend={(messages) => onSend(messages)}
         user={{
@@ -126,7 +141,7 @@ const Chat = ({ db, route, navigation }) => {
         }}
         renderSystemMessage={renderSystemMessage}
         renderDay={renderDay}
-        renderAvatar={renderAvatar}
+        renderInputToolbar={renderInputToolbar}
       />
       {/* Keyboard avoiding view for better UX on different platforms */}
       {Platform.OS === "android" ? (

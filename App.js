@@ -1,4 +1,10 @@
-import { LogBox } from "react-native";
+// import NetInfo to determine if user is online
+import { useNetInfo } from "@react-native-community/netinfo";
+
+// import logbox to disable certain warnings for testing
+import { LogBox, Alert } from "react-native";
+
+import { useEffect } from "react";
 
 // import the screens
 import Start from "./components/Start";
@@ -8,7 +14,13 @@ import Chat from "./components/Chat";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-// Create the navigator
+//initialize firebase/firestore
+import { initializeApp } from "firebase/app";
+import {
+  getFirestore,
+  disableNetwork,
+  enableNetwork,
+} from "firebase/firestore";
 
 // Disable warning on default props for now
 LogBox.ignoreLogs([
@@ -16,10 +28,6 @@ LogBox.ignoreLogs([
 ]);
 
 const Stack = createNativeStackNavigator();
-
-//initialize firebase/firestore
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
 
 const App = () => {
   const firebaseConfig = {
@@ -36,12 +44,37 @@ const App = () => {
 
   const db = getFirestore(app);
 
+  const connectionStatus = useNetInfo();
+
+  useEffect(() => {
+    const handleNetworkChange = async () => {
+      if (connectionStatus.isConnected === false) {
+        Alert.alert("Connection Lost!");
+        await disableNetwork(db);
+      } else if (connectionStatus.isConnected === true) {
+        await enableNetwork(db);
+      }
+    };
+
+    handleNetworkChange();
+
+    return () => {
+      // Cleanup if necessary
+    };
+  }, [connectionStatus.isConnected]);
+
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Chart">
+      <Stack.Navigator initialRouteName="Start">
         <Stack.Screen name="Start" component={Start} />
         <Stack.Screen name="Chat">
-          {(props) => <Chat db={db} {...props} />}
+          {(props) => (
+            <Chat
+              isConnected={connectionStatus.isConnected}
+              db={db}
+              {...props}
+            />
+          )}
         </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
