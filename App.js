@@ -22,6 +22,9 @@ import {
   enableNetwork,
 } from "firebase/firestore";
 
+// import getsStorage for uploading images to firebase
+import { getStorage } from "firebase/storage";
+
 // Disable warning on default props for now
 LogBox.ignoreLogs([
   "Warning: Avatar: Support for defaultProps will be removed from function components",
@@ -43,6 +46,7 @@ const App = () => {
   const app = initializeApp(firebaseConfig);
 
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
   const connectionStatus = useNetInfo();
 
@@ -72,6 +76,7 @@ const App = () => {
             <Chat
               isConnected={connectionStatus.isConnected}
               db={db}
+              storage={storage}
               {...props}
             />
           )}

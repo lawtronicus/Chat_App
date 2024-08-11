@@ -60,7 +60,7 @@ const Start = ({ navigation }) => {
       >
         {/* App title */}
 
-        <Text style={styles.appTitle}>App Title</Text>
+        <Text style={styles.appTitle}>Let's Chat!</Text>
         {/* White box containing the input, background color circles, and start chatting button */}
 
         <View style={styles.contentBox}>

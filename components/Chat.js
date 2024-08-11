@@ -1,6 +1,13 @@
 // import AsyncStorage so previous chats can be pulled from cache if offline
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// import image picker for uploading images
+import * as ImagePicker from "expo-image-picker";
+
+// Import location and maps to find location for sending a pen with user's location
+import * as Location from "expo-location";
+import MapView from "react-native-maps";
+
 import { StyleSheet, View, KeyboardAvoidingView, Platform } from "react-native";
 import { useState, useEffect } from "react";
 import {
@@ -17,14 +24,20 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import avatarImage from "../assets/images/avatar.jpeg";
+import CustomActions from "./CustomActions";
 
 // Define the Chat component which handles the chat screen
-const Chat = ({ db, route, isConnected }) => {
+const Chat = ({ db, route, isConnected, storage }) => {
   // State for storing chat messages
   const [messages, setMessages] = useState([]);
   // Extract name and background color from route parameters
   const { id, name, color } = route.params;
+
+  //  State for storing image
+  const [image, setImage] = useState(null);
+
+  // State for storing location
+  const [location, setLocation] = useState(null);
 
   // Function to determine if a color is light or dark - credit to krabs-github for this function
   function lightOrDark(color) {
@@ -67,6 +80,42 @@ const Chat = ({ db, route, isConnected }) => {
   const loadCachedMessages = async () => {
     const cachedMessages = (await AsyncStorage.getItem("messages")) || [];
     setMessages(JSON.parse(cachedMessages));
+  };
+
+  // function to select image from library
+  const pickImage = async () => {
+    let permissions = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissions?.granted) {
+      let result = await ImagePicker.launchImageLibraryAsync();
+
+      if (!result.canceled) setImage(result.assets[0]);
+      else setImage(null);
+    }
+  };
+
+  //function to allow user to take a photo
+  const takePhoto = async () => {
+    let permissions = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (permissions?.granted) {
+      let result = await ImagePicker.launchCameraAsync();
+
+      if (!result.canceled) setImage(result.assets[0]);
+      else setImage(null);
+    }
+  };
+
+  //function to get location
+  const getLocation = async () => {
+    let permissions = await Location.requestForegroundPermissionsAsync();
+
+    if (permissions?.granted) {
+      const location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+    } else {
+      Alert.alert("Permissions to read location aren't granted");
+    }
   };
 
   // declare unsubMessages outside of useEffect so that I can use unsubscribe and disable the old onSanpsho() listener before losing its reference
@@ -129,19 +178,43 @@ const Chat = ({ db, route, isConnected }) => {
     else return null;
   };
 
+  const renderCustomActions = (props) => {
+    return <CustomActions storage={storage} userID={id} {...props} />;
+  };
+
+  const renderCustomView = (props) => {
+    const { currentMessage } = props;
+    if (currentMessage.location) {
+      return (
+        <MapView
+          style={{ width: 150, height: 100, borderRadius: 13, margin: 3 }}
+          region={{
+            latitude: currentMessage.location.latitude,
+            longitude: currentMessage.location.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        />
+      );
+    }
+    return null;
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: color }]}>
       <GiftedChat
         renderUsernameOnMessage={true}
         messages={messages}
         onSend={(messages) => onSend(messages)}
+        renderSystemMessage={renderSystemMessage}
+        renderDay={renderDay}
+        renderInputToolbar={renderInputToolbar}
+        renderActions={renderCustomActions}
+        renderCustomView={renderCustomView}
         user={{
           _id: id,
           name: name,
         }}
-        renderSystemMessage={renderSystemMessage}
-        renderDay={renderDay}
-        renderInputToolbar={renderInputToolbar}
       />
       {/* Keyboard avoiding view for better UX on different platforms */}
       {Platform.OS === "android" ? (
